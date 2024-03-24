@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
@@ -10,8 +11,8 @@ import pytest
 
 app = FastAPI()
 
-# MongoDB connection
-client = MongoClient("mongodb+srv://atharva22110116:j1db3hmyyaWorY4l@fastapiproject.gfmoy1c.mongodb.net/")
+mongo_connection_string = os.getenv("MONGO_CONNECTION_STRING")
+client = MongoClient(mongo_connection_string)
 db = client["github_contributors"]
 collection = db["FastAPIproject"]
 
@@ -45,7 +46,6 @@ def store_contributors(contributors: List[dict]) -> int:
 @app.get("/check-database-connection")
 def check_database_connection():
     try:
-        # Attempt to perform a simple database operation
         collection_count = collection.count_documents({})
         return {"message": f"Successfully connected to MongoDB. Collection count: {collection_count}"}
     except ServerSelectionTimeoutError:
@@ -59,7 +59,7 @@ def ingest_contributors(repo_input: RepositoryInput):
 
 @app.post("/get-contributor-info", response_model=dict)
 def get_contributor_info(info: ContributorInfo):
-    # Query MongoDB collection based on provided parameters
+
     contributor_data = collection.find_one({
         "owner": info.owner,
         "repo": info.repo,
@@ -70,7 +70,7 @@ def get_contributor_info(info: ContributorInfo):
     if not contributor_data:
         raise HTTPException(status_code=404, detail="Contributor not found")
 
-    # Construct response payload
+
     response_data = {
         "username": contributor_data["username"],
         "avatar_url": contributor_data["avatar_url"],
